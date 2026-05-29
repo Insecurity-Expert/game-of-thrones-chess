@@ -65,6 +65,7 @@ def _assign(hidden):
                 counts[t] -= 1
                 del result[sq]
         return False
+    return result if backtrack(0) else None
 
 def create_determinization(board, ai_color):
     opponent = not ai_color
@@ -80,8 +81,6 @@ def create_determinization(board, ai_color):
         hidden.append((sq, _candidates_from_path(paths[origin[sq]])))
 
     assignment = _assign(hidden)
-    print("DEBUG -> hidden pieces:", len(hidden), "| assignment:", assignment)
-    print("DEBUG -> candidates:", [sorted(c) for sq, c in hidden])
     det = board.copy()
     if assignment is not None:
         for sq, t in assignment.items():
