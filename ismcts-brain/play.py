@@ -10,6 +10,9 @@ import sys
 import random
 import chess
 import game
+from ismcts.tree import ismcts
+from ismcts.node import Node
+from ismcts.determinization import create_determinization
 
 
 def print_board(board):
@@ -41,8 +44,9 @@ def human_move(board):
 
 
 def ai_move(board):
-    move = random.choice(game.get_legal_moves(board))
-    print(f"\nThe random AI plays: {move.uci()}")
+    print("\nThe AI is thinking...")
+    move, iters = ismcts(board, chess.BLACK, time_limit_seconds=3.0)
+    print(f"The AI plays: {move.uci()}  ({iters} simulations)")
     return move
 
 
