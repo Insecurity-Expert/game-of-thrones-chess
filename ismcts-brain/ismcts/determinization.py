@@ -87,6 +87,16 @@ def create_determinization(board, ai_color):
             det.set_piece_at(sq, chess.Piece(PIECE_TYPE[t], opponent))
     return det
     
+def compute_all_deductions(board):
+    origin, paths = _origin_map(board)
+    deductions = {}
+    for sq in chess.SQUARES:
+        piece = board.piece_at(sq)
+        if piece is None or piece.piece_type == chess.PAWN:
+            continue
+        deductions[sq] = _candidates_from_path(paths[origin[sq]])
+    return deductions
+
 if __name__ == "__main__":
     import sys, os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

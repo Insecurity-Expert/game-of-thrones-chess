@@ -1,4 +1,6 @@
 import useGameStore from '../../store/gameStore'
+import { newGame } from '../../utils/api'
+import { fenToBoard } from '../../utils/fen'
 
 const difficulties = [
   { level: 'easy', label: 'Easy', time: '3 seconds', description: 'The AI thinks briefly. Good for beginners.' },
@@ -7,10 +9,18 @@ const difficulties = [
 ]
 
 export default function MenuModal() {
-  const { difficulty, setDifficulty, setGamePhase } = useGameStore()
+  const { difficulty, setDifficulty, setGamePhase, setBoard, initFromServer } = useGameStore()
 
-  const handleStart = () => {
+  const handleStart = async() => {
     if (!difficulty) return
+    const data = await newGame()
+    console.log('API Response:', data)
+    initFromServer(data)
+    console.log('FEN received:', data.initial_fen)
+    const parsed = fenToBoard(data.initial_fen)
+    console.log('Parsed board has', parsed.length, 'pieces:', parsed.map(p => p.square).sort())
+    console.log('Squares:', JSON.stringify(parsed.map(p => p.square)))
+    setBoard(fenToBoard(data.initial_fen))
     setGamePhase('playing')
   }
 

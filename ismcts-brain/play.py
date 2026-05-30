@@ -43,12 +43,25 @@ def human_move(board):
         print("  -> That move isn't legal right now. Try again.\n")
 
 
-def ai_move(board):
-    print("\nThe AI is thinking...")
-    move, iters = ismcts(board, chess.BLACK, time_limit_seconds=3.0)
+def ai_move(board, time_limit):
+    print(f"\nThe AI is thinking ({time_limit:.0f}s)...")
+    move, iters = ismcts(board, chess.BLACK, time_limit_seconds=time_limit)
     print(f"The AI plays: {move.uci()}  ({iters} simulations)")
     return move
 
+def choose_difficulty():
+    options = {'1':('Easy',3.0),'2':('Medium',10.0),'3':('Hard',20)}
+    print("\nChoose difficulty (AI thinking time per move):")
+    print(" 1.  Easy    (3 seconds)")
+    print(" 2.  Medium  (10 seconds)")
+    print(" 3.  Hard    (20 seconds)")
+    while True:
+        choice = input("Pick 1, 2, or 3:    ").strip()
+        if choice in options:
+            label, seconds = options[choice]
+            print(f"\nDifficulty {label} - AI thinks {seconds:.0f}s permove.\n")
+            return seconds
+        print(" -> Please type 1, 2, or 3.")
 
 def main():
     board = game.create_new_game()
@@ -57,6 +70,8 @@ def main():
     print(" You are WHITE. The random AI is BLACK.")
     print(" Capture the enemy KING to win.")
     print("=" * 42)
+
+    time_limit = choose_difficulty()
 
     while not game.is_game_over(board):
         if not game.get_legal_moves(board):
@@ -71,7 +86,7 @@ def main():
                 print("Quitting.")
                 return
         else:
-            move = ai_move(board)
+            move = ai_move(board, time_limit)
         game.apply_move(board, move)
 
     print_board(board)
