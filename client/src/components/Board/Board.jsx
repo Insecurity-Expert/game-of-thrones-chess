@@ -10,7 +10,7 @@ export default function Board() {
         difficulty, deductions, gamePhase, playerColor, aiColor,
     } = useGameStore()
 
-    const fogOn = difficulty !== 'easy' && gamePhase !== 'gameover'
+    const fogOn = difficulty !== 'easy' && difficulty !== 'dev' && gamePhase !== 'gameover'
     const showDeductions = difficulty !== 'hard'
 
     // Flip the rendering order when the player is Black
@@ -29,7 +29,7 @@ export default function Board() {
 
                     const baseMove = selectedSquare + square
                     const isLegalDestination = !!selectedSquare && (
-                        legalMoves.includes(baseMove) || legalMoves.includes(baseMove + 'q')
+                        legalMoves.includes(baseMove) || ['q','r','b','n'].some(s => legalMoves.includes(baseMove + s))
                     )
 
                     const isHidden = fogOn && piece && piece.color === aiColor

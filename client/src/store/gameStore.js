@@ -3,7 +3,7 @@ import { requestAiMove } from '../utils/api'
 import { fenToBoard } from '../utils/fen'
 import { playMove, playCapture, playVictory, playDefeat } from '../utils/sounds'
 
-const DIFFICULTY_TIME = { easy: 3.0, medium: 10.0, hard: 20.0 }
+const DIFFICULTY_TIME = { easy: 3.0, medium: 10.0, hard: 20.0, dev:0.0 }
 
 const useGameStore = create((set, get) => ({
     // ----- state -----
@@ -22,6 +22,7 @@ const useGameStore = create((set, get) => ({
     aiThinking: false,
     playerColor: 'white',
     aiColor: 'black',
+    promotionPending: null,
 
     // ----- simple setters -----
     setBoard: (board) => set({ boardState: board }),
@@ -41,6 +42,7 @@ const useGameStore = create((set, get) => ({
         revealedPieces: [], gamePhase: 'menu', winner: null, moveHistory: [],
         initialFen: null, movesHistory: [], deductions: {}, legalMoves: [],
         aiThinking: false, playerColor: 'white', aiColor: 'black',
+        promotionPending: null,
     }),
 
     initFromServer: (data, playerColor = 'white') => {
@@ -60,6 +62,7 @@ const useGameStore = create((set, get) => ({
     handleSquareClick: async (clickedSquare) => {
         const state = get()
         if (state.currentTurn !== 'player' || state.gamePhase !== 'playing') return
+        if (state.promotionPending) return
 
         const piece = state.boardState.find(p => p.square === clickedSquare)
 
@@ -75,24 +78,28 @@ const useGameStore = create((set, get) => ({
             return
         }
 
-        // Match either a regular move (e2e4) or a pawn-promotion move (e7e8q)
-        const baseMove = state.selectedSquare + clickedSquare
-        const promoMove = baseMove + 'q'
-        const actualMove = state.legalMoves.includes(baseMove) ? baseMove
-                         : state.legalMoves.includes(promoMove) ? promoMove
-                         : null
+    const baseMove = state.selectedSquare + clickedSquare
 
-        if (actualMove) {
-            await get()._executeMove(actualMove)
-            return
-        }
+    // Detect promotion — if any q/r/b/n variant is in legal moves, open the picker
+    const promoSuffixes = ['q', 'r', 'b', 'n']
+    const promoExists = promoSuffixes.some(s => state.legalMoves.includes(baseMove + s))
 
-        if (piece && piece.color === state.playerColor) {
-            set({ selectedSquare: clickedSquare })
-        } else {
-            set({ selectedSquare: null })
-        }
-    },
+    if (promoExists) {
+        set({ promotionPending: { from: state.selectedSquare, to: clickedSquare } })
+        return
+    }
+
+    if (state.legalMoves.includes(baseMove)) {
+        await get()._executeMove(baseMove)
+        return
+    }
+
+    if (piece && piece.color === state.playerColor) {
+        set({ selectedSquare: clickedSquare })
+    } else {
+        set({ selectedSquare: null })
+    }
+},
 
     _executeMove: async (moveUci) => {
         const state = get()
@@ -121,14 +128,16 @@ const useGameStore = create((set, get) => ({
     },
 
     _fetchAiMove: async (movesBeforeAi) => {
-        const state = get()
-        set({ aiThinking: true, currentTurn: 'ai', legalMoves: [] })
+    const state = get()
+    set({ aiThinking: true, currentTurn: 'ai', legalMoves: [] })
 
+    try {
         const data = await requestAiMove({
             initialFen: state.initialFen,
             moves: movesBeforeAi,
             aiColor: state.aiColor,
             timeLimit: DIFFICULTY_TIME[state.difficulty] || 3.0,
+            devMode: state.difficulty === 'dev',
         })
 
         const updatedMoves = data.move ? [...movesBeforeAi, data.move] : movesBeforeAi
@@ -152,7 +161,16 @@ const useGameStore = create((set, get) => ({
             playerWon ? playVictory() : playDefeat()
             set({ gamePhase: 'gameover', winner: data.winner })
         }
-    },
+    } catch (err) {
+        console.error('AI move request failed:', err)
+        // Restore the player's turn so the UI doesn't freeze forever
+        set({
+            currentTurn: 'player',
+            aiThinking: false,
+            legalMoves: state.legalMoves,
+        })
+    }
+},
 }))
 
 export default useGameStore

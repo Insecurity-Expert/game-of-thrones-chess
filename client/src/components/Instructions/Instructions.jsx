@@ -8,7 +8,7 @@ export default function Instructions() {
         <p><span className="text-yellow-700 font-bold">Fog of War —</span> Opponent pieces appear as shields on Medium and Hard.</p>
         <p><span className="text-yellow-700 font-bold">Deduction —</span> Movement reveals identity: bishops slide diagonally, knights jump in L-shapes, etc.</p>
         <p><span className="text-yellow-700 font-bold">Hover —</span> Hover any piece to see its possible identities (Easy and Medium).</p>
-        <p><span className="text-yellow-700 font-bold">No special moves —</span> No castling, en passant, or pawn promotion.</p>
+        <p><span className="text-yellow-700 font-bold">No special moves —</span> No castling or en passant.</p>
         <p><span className="text-yellow-700 font-bold">Reveal —</span> A piece reveals itself when it captures or attacks the King.</p>
       </div>
     </div>

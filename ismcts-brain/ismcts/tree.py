@@ -61,6 +61,20 @@ def _select_and_expand(root, det):
         det.push(node.move)
         path.append(node)
 
+SIM_PIECE_VALUE = {
+    chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3,
+    chess.ROOK: 5, chess.QUEEN: 9, chess.KING: 100,
+}
+
+def _capture_gain(board, move):
+    """Rough material gain from this capture (Most Valuable Victim - Least Valuable Attacker)."""
+    target = board.piece_at(move.to_square)
+    attacker = board.piece_at(move.from_square)
+    if target is None or attacker is None:
+        return 0
+    return SIM_PIECE_VALUE[target.piece_type] - 0.1 * SIM_PIECE_VALUE[attacker.piece_type]
+
+
 def _simulate(det, ai_color):
     board = det.copy()
     moves = 0
@@ -69,7 +83,12 @@ def _simulate(det, ai_color):
         if not legal:
             break
         captures = [m for m in legal if board.is_capture(m)]
-        move = random.choice(captures) if captures else random.choice(legal)
+        if captures:
+            # Sort captures by material gain; pick a good one most of the time
+            captures.sort(key=lambda m: _capture_gain(board, m), reverse=True)
+            move = captures[0] if random.random() < 0.8 else random.choice(captures)
+        else:
+            move = random.choice(legal)
         board.push(move)
         moves += 1
 

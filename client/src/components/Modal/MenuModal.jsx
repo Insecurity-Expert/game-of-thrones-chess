@@ -5,9 +5,10 @@ import { fenToBoard } from '../../utils/fen'
 import { startMusic } from '../../utils/music'
 
 const difficulties = [
-  { level: 'easy', label: 'Easy', time: '3 seconds', description: 'The AI thinks briefly. Good for beginners.' },
-  { level: 'medium', label: 'Medium', time: '10 seconds', description: 'The AI thinks carefully. A fair challenge.' },
-  { level: 'hard', label: 'Hard', time: '20 seconds', description: 'The AI thinks deeply. Expect no mercy.' },
+  { level: 'easy', label: 'Easy', time: '3 seconds', description: 'The AI thinks briefly. Season 8 Tier.' },
+  { level: 'medium', label: 'Medium', time: '10 seconds', description: 'The AI thinks carefully. Hodor Tier.' },
+  { level: 'hard', label: 'Hard', time: '20 seconds', description: 'The AI thinks deeply. Tyrion Tier.' },
+  { level: 'dev', label: 'Dev', time: 'instant', description: 'Test Please Ignore'}
 ]
 
 const sides = [
