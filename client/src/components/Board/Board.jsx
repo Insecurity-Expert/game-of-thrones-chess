@@ -1,28 +1,40 @@
 import useGameStore from '../../store/gameStore'
-import gamePhase from '../../store/gameStore'
 import Square from './Square'
 
-const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-const ranks = [8, 7, 6, 5, 4, 3, 2, 1]
+const FILES_DEFAULT = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+const RANKS_DEFAULT = [8, 7, 6, 5, 4, 3, 2, 1]
 
 export default function Board() {
-    const { boardState, selectedSquare, handleSquareClick, legalMoves, difficulty, deductions, gamePhase } =
-        useGameStore()
+    const {
+        boardState, selectedSquare, handleSquareClick, legalMoves,
+        difficulty, deductions, gamePhase, playerColor, aiColor,
+    } = useGameStore()
 
     const fogOn = difficulty !== 'easy' && gamePhase !== 'gameover'
     const showDeductions = difficulty !== 'hard'
+
+    // Flip the rendering order when the player is Black
+    const files = playerColor === 'white' ? FILES_DEFAULT : [...FILES_DEFAULT].reverse()
+    const ranks = playerColor === 'white' ? RANKS_DEFAULT : [...RANKS_DEFAULT].reverse()
 
     return (
         <div className="grid grid-cols-8 border-2 border-yellow-800">
             {ranks.map((rank) =>
                 files.map((file) => {
                     const square = `${file}${rank}`
-                    const isLight = (files.indexOf(file) + rank) % 2 === 0
+                    // Use FILES_DEFAULT for indexOf so square colors stay correct regardless of orientation
+                    const isLight = (FILES_DEFAULT.indexOf(file) + rank) % 2 === 0
                     const piece = boardState.find((p) => p.square === square) || null
                     const isSelected = selectedSquare === square
-                    const isLegalDestination = !!selectedSquare && legalMoves.includes(selectedSquare + square)
-                    const isHidden = fogOn && piece && piece.color === 'black'
+
+                    const baseMove = selectedSquare + square
+                    const isLegalDestination = !!selectedSquare && (
+                        legalMoves.includes(baseMove) || legalMoves.includes(baseMove + 'q')
+                    )
+
+                    const isHidden = fogOn && piece && piece.color === aiColor
                     const deduction = deductions[square]
+
                     return (
                         <Square
                             key={square}

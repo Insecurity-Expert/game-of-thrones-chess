@@ -6,9 +6,10 @@ export default function GameOverModal() {
     const {
         winner, movesHistory, difficulty, resetGame,
         setDifficulty, initFromServer, setBoard, setGamePhase,
+        playerColor,
     } = useGameStore()
 
-    const playerWon = winner === 'white'
+    const playerWon = winner === playerColor
     const heading = playerWon ? 'VICTORY' : 'DEFEAT'
     const subtext = playerWon
         ? "You captured the AI's king."
@@ -17,12 +18,16 @@ export default function GameOverModal() {
 
     const handlePlayAgain = async () => {
         const keepDifficulty = difficulty
+        const keepColor = playerColor
         resetGame()
         setDifficulty(keepDifficulty)
         const data = await newGame()
-        initFromServer(data)
+        initFromServer(data, keepColor)
         setBoard(fenToBoard(data.initial_fen))
         setGamePhase('playing')
+        if (keepColor === 'black') {
+            await useGameStore.getState()._fetchAiMove([])
+        }
     }
 
     const handleBackToMenu = () => {
@@ -38,6 +43,7 @@ export default function GameOverModal() {
             <div className="text-[10px] text-gray-500 uppercase tracking-widest text-center">
                 <div>Total moves: {movesHistory.length}</div>
                 <div>Difficulty: {difficulty}</div>
+                <div>You played: {playerColor}</div>
             </div>
             <div className="flex flex-col gap-2 w-full mt-2">
                 <button

@@ -31,7 +31,7 @@ def get_legal_moves(board):
             continue
         if board.is_en_passant(move):
             continue
-        if move.promotion is not None:
+        if move.promotion is not None and move.promotion != chess.QUEEN:
             continue
         moves.append(move)
     return moves

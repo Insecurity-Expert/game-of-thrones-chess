@@ -11,8 +11,8 @@ export default function Piece({ piece, isHidden }) {
   if (isHidden) {
     return (
       <Shield
-        className="w-10 h-10 text-slate-400 animate-pulse drop-shadow-md"
-        strokeWidth={1.5}
+        className="w-12 h-12 fill-slate-700 text-slate-300 drop-shadow-md"
+        strokeWidth={2.5}
       />
     )
   }

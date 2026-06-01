@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { requestAiMove } from '../utils/api'
 import { fenToBoard } from '../utils/fen'
+import { playMove, playCapture, playVictory, playDefeat } from '../utils/sounds'
 
 const DIFFICULTY_TIME = { easy: 3.0, medium: 10.0, hard: 20.0 }
 
@@ -19,6 +20,8 @@ const useGameStore = create((set, get) => ({
     deductions: {},
     legalMoves: [],
     aiThinking: false,
+    playerColor: 'white',
+    aiColor: 'black',
 
     // ----- simple setters -----
     setBoard: (board) => set({ boardState: board }),
@@ -37,15 +40,21 @@ const useGameStore = create((set, get) => ({
         boardState: [], currentTurn: 'player', selectedSquare: null,
         revealedPieces: [], gamePhase: 'menu', winner: null, moveHistory: [],
         initialFen: null, movesHistory: [], deductions: {}, legalMoves: [],
-        aiThinking: false,
+        aiThinking: false, playerColor: 'white', aiColor: 'black',
     }),
 
-    initFromServer: ({ initial_fen, deductions, legal_moves }) => set({
-        initialFen: initial_fen,
-        movesHistory: [],
-        deductions,
-        legalMoves: legal_moves,
-    }),
+    initFromServer: (data, playerColor = 'white') => {
+        const aiColor = playerColor === 'white' ? 'black' : 'white'
+        set({
+            initialFen: data.initial_fen,
+            movesHistory: [],
+            deductions: data.deductions || {},
+            legalMoves: data.legal_moves || [],
+            playerColor,
+            aiColor,
+            currentTurn: playerColor === 'white' ? 'player' : 'ai',
+        })
+    },
 
     // ----- click + move logic -----
     handleSquareClick: async (clickedSquare) => {
@@ -55,7 +64,7 @@ const useGameStore = create((set, get) => ({
         const piece = state.boardState.find(p => p.square === clickedSquare)
 
         if (state.selectedSquare === null) {
-            if (piece && piece.color === 'white') {
+            if (piece && piece.color === state.playerColor) {
                 set({ selectedSquare: clickedSquare })
             }
             return
@@ -66,14 +75,19 @@ const useGameStore = create((set, get) => ({
             return
         }
 
-        const moveUci = state.selectedSquare + clickedSquare
-        if (state.legalMoves.includes(moveUci)) {
-            await get()._executeMove(moveUci)
+        // Match either a regular move (e2e4) or a pawn-promotion move (e7e8q)
+        const baseMove = state.selectedSquare + clickedSquare
+        const promoMove = baseMove + 'q'
+        const actualMove = state.legalMoves.includes(baseMove) ? baseMove
+                         : state.legalMoves.includes(promoMove) ? promoMove
+                         : null
+
+        if (actualMove) {
+            await get()._executeMove(actualMove)
             return
         }
 
-        // Not legal — maybe selecting a different own piece
-        if (piece && piece.color === 'white') {
+        if (piece && piece.color === state.playerColor) {
             set({ selectedSquare: clickedSquare })
         } else {
             set({ selectedSquare: null })
@@ -84,12 +98,16 @@ const useGameStore = create((set, get) => ({
         const state = get()
         const fromSquare = moveUci.slice(0, 2)
         const toSquare = moveUci.slice(2, 4)
+        const isPromotion = moveUci.length === 5
 
-        // Apply human move locally for instant feedback
+        const humanCaptured = state.boardState.some(p => p.square === toSquare)
+        humanCaptured ? playCapture() : playMove()
+
         const movingPiece = state.boardState.find(p => p.square === fromSquare)
+        const placedType = isPromotion ? 'Q' : movingPiece.type
         const newBoard = state.boardState
             .filter(p => p.square !== fromSquare && p.square !== toSquare)
-            .concat({ ...movingPiece, square: toSquare })
+            .concat({ ...movingPiece, type: placedType, square: toSquare })
 
         const newMoves = [...state.movesHistory, moveUci]
 
@@ -97,23 +115,31 @@ const useGameStore = create((set, get) => ({
             boardState: newBoard,
             movesHistory: newMoves,
             selectedSquare: null,
-            currentTurn: 'ai',
-            legalMoves: [],
-            aiThinking: true,
         })
 
-        // Ask the AI for its response
+        await get()._fetchAiMove(newMoves)
+    },
+
+    _fetchAiMove: async (movesBeforeAi) => {
+        const state = get()
+        set({ aiThinking: true, currentTurn: 'ai', legalMoves: [] })
+
         const data = await requestAiMove({
             initialFen: state.initialFen,
-            moves: newMoves,
-            aiColor: 'black',
+            moves: movesBeforeAi,
+            aiColor: state.aiColor,
             timeLimit: DIFFICULTY_TIME[state.difficulty] || 3.0,
         })
 
-        const updatedMoves = data.move ? [...newMoves, data.move] : newMoves
+        const updatedMoves = data.move ? [...movesBeforeAi, data.move] : movesBeforeAi
+        const finalBoard = fenToBoard(data.fen)
+
+        const boardBeforeAi = get().boardState
+        const aiCaptured = finalBoard.length < boardBeforeAi.length
+        aiCaptured ? playCapture() : playMove()
 
         set({
-            boardState: fenToBoard(data.fen),
+            boardState: finalBoard,
             movesHistory: updatedMoves,
             deductions: data.deductions || {},
             legalMoves: data.legal_moves || [],
@@ -122,6 +148,8 @@ const useGameStore = create((set, get) => ({
         })
 
         if (data.game_over) {
+            const playerWon = data.winner === get().playerColor
+            playerWon ? playVictory() : playDefeat()
             set({ gamePhase: 'gameover', winner: data.winner })
         }
     },

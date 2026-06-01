@@ -36,13 +36,29 @@ def new_game():
 def make_move():
     data = request.get_json()
     initial_fen = data['initial_fen']
-    moves = data.get('moves',[])
-    ai_color_str = data.get('ai_color', 'black').lower
+    moves = data.get('moves', [])
+    ai_color_str = data.get('ai_color', 'black').lower()
     time_limit = float(data.get('time_limit', 3.0))
-    
+
+    # Replay history onto the scrambled starting position
     board = chess.Board(initial_fen)
     for uci in moves:
         board.push(chess.Move.from_uci(uci))
+
+    # If the human's move already ended the game, return immediately —
+    # don't ask the AI to "respond" on a king-less board.
+    winner = game.get_winner(board)
+    if winner is not None:
+        return jsonify({
+            'move': None,
+            'fen': board.fen(),
+            'iterations': 0,
+            'think_time': 0.0,
+            'game_over': True,
+            'winner': winner,
+            'deductions': _build_deductions_payload(board),
+            'legal_moves': [],
+        })
 
     ai_color = chess.WHITE if ai_color_str == 'white' else chess.BLACK
 

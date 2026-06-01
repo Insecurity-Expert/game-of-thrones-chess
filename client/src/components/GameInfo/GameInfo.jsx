@@ -1,7 +1,7 @@
 import useGameStore from '../../store/gameStore'
 
 export default function GameInfo() {
-  const { currentTurn, difficulty, movesHistory, aiThinking } = useGameStore()
+  const { currentTurn, difficulty, movesHistory, aiThinking, gamePhase, resetGame } = useGameStore()
 
   return (
     <div className="flex flex-col gap-4 w-64 p-4 bg-[#1a1a1a] text-white rounded-lg border border-yellow-900">
@@ -38,6 +38,15 @@ export default function GameInfo() {
           })}
         </div>
       </div>
+
+      {gamePhase === 'playing' && (
+        <button
+          onClick={resetGame}
+          className="mt-2 py-2 border border-red-900 text-red-500 hover:bg-red-900/30 rounded uppercase tracking-widest text-xs font-bold"
+        >
+          Quit Game
+        </button>
+      )}
     </div>
   )
 }
